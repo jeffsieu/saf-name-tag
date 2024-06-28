@@ -223,8 +223,8 @@ const abbreviateMdAndAd: Rule = {
   name: "MD and AD can used as abbreviation for Mohammed/Mohamad and Abdul respectively.",
   validate: (value) => true, // TODO
   transform: (value) => {
-    const mdRegex = /m[aeou][hx][ae]mm?[ae][dt]/gi;
-    const adRegex = /abd([aeio]oo|ou)l/gi;
+    const mdRegex = /^m[aeou][hx][ae]mm?[ae][dt]$/gi;
+    const adRegex = /^abd([aeio]oo|ou)l$/gi;
 
     const names = value.names.map((name) =>
       name.replace(mdRegex, "MD").replace(adRegex, "AD")
