@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "SAF Name Tag Calculator",
   description:
-    "Write your name on an SAF No. 4 name tag based on latest name tag conventions",
+    "Write your name on an SAF No. 4 name tag based on latest name tag conventions.",
 };
 
 export default function RootLayout({
