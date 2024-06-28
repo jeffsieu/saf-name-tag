@@ -56,7 +56,7 @@ const testCases: Array<[NameInput, string]> = [
       isMdes: true,
       isDoctor: false,
     },
-    "ME3-2 TAN ZHI QING",
+    "ME3-2 TAN Z Q",
   ],
   [
     {
@@ -250,20 +250,22 @@ const truncateAbbreviatedNames: Rule = {
   name: "If abbreviated given names exceeds 17 characters, only first and/or second given names will be abbreviated to initials.",
   validate: (value) => true, // TODO
   transform: (value) => {
+    const renderedName = renderNameInFull(value);
+
+    if (renderedName.length <= CHARACTER_LIMIT) {
+      return value;
+    }
+
     // If meet a surname, immediately remove the rest
     // Otherwise, pick the first and second given names
     const firstGivenNameIndex = value.names.findIndex(
       (_, index) => !value.surnameIndices.includes(index)
     );
-    const secondGivenNameIndex = value.names.findIndex(
-      (_, index) =>
-        !value.surnameIndices.includes(index) && index > firstGivenNameIndex
-    );
 
     // Try to include the first given name and the next name
     const namesTwoGivenNames = value.names.filter(
       (_, index) =>
-        value.surnameIndices.includes(index) || index <= secondGivenNameIndex
+        value.surnameIndices.includes(index) || index <= firstGivenNameIndex + 1
     );
     const nameWithTwoGivenNames = { ...value, names: namesTwoGivenNames };
     const renderedNameWithTwoGivenNames = renderNameInFull(
@@ -298,6 +300,11 @@ const rules: Record<NameType, Array<Rule>> = {
   indian: [excludeFathersName, onlyFirstGivenName, alphabetOnly],
 };
 
+const examples = testCases.map(([input]) => ({
+  input,
+  candidates: generateNameCandidates(parseName(input)),
+}));
+
 type NameType = "chineseEnglish" | "malay" | "indian";
 
 function getPrefix(parsedName: ParsedName) {
@@ -312,10 +319,10 @@ function getPrefix(parsedName: ParsedName) {
   return "";
 }
 
-function generateName(parsedName: ParsedName) {
+function generateNameCandidates(parsedName: ParsedName) {
   const nameRules = rules[parsedName.type];
 
-  const applyRules = (rules: Array<Rule>) => {
+  const applyRules = (rules: Array<Rule>, parsedName: ParsedName) => {
     const nameRules = [...rules];
     let name = parsedName;
 
@@ -335,7 +342,53 @@ function generateName(parsedName: ParsedName) {
     return [prefix, ...name.names].filter(Boolean).join(" ");
   };
 
-  return applyRules(nameRules).toUpperCase();
+  const parsedNameCandidates = (() => {
+    if (parsedName.type === "chineseEnglish") {
+      if (parsedName.surnameIndices.length === 0) {
+        return [parsedName];
+      }
+      // For Alex Tan Jun Xiong, try also:
+      // - Alex Tan
+      // - Tan Jun Xiong
+      const firstSurnameIndex = parsedName.surnameIndices.reduce(
+        (acc, index) => Math.min(acc, index),
+        parsedName.names.length
+      );
+      const lastSurnameIndex = parsedName.surnameIndices.reduce(
+        (acc, index) => Math.max(acc, index),
+        -1
+      );
+
+      const hasNamesOnBothSides =
+        firstSurnameIndex > 0 && lastSurnameIndex < parsedName.names.length - 1;
+
+      if (hasNamesOnBothSides) {
+        const frontNamesOnly: ParsedName = {
+          ...parsedName,
+          names: parsedName.names.slice(0, lastSurnameIndex + 1),
+        };
+        const backNamesOnly: ParsedName = {
+          ...parsedName,
+          names: parsedName.names.slice(firstSurnameIndex),
+          surnameIndices: parsedName.surnameIndices.map(
+            (index) => index - firstSurnameIndex
+          ),
+        };
+
+        return [parsedName, frontNamesOnly, backNamesOnly];
+      }
+
+      return [parsedName];
+    }
+
+    return [parsedName];
+  })();
+
+  const results = parsedNameCandidates.map((parsedName) =>
+    applyRules(nameRules, parsedName).toUpperCase()
+  );
+
+  return Array.from(new Set(results));
 }
 
 function parseName(input: NameInput): ParsedName {
@@ -370,14 +423,6 @@ export default function Home() {
   const surnameIndices = form.watch("surnameIndices");
 
   const parsedName = useMemo(() => {
-    console.log("parsedName", {
-      name,
-      type: nameType,
-      surnameIndices,
-      rank,
-      isMdes,
-      isDoctor,
-    });
     return parseName({
       name,
       type: nameType,
@@ -388,7 +433,10 @@ export default function Home() {
     });
   }, [name, nameType, surnameIndices, rank, isMdes, isDoctor]);
 
-  const generatedName = useMemo(() => generateName(parsedName), [parsedName]);
+  const generatedNameCandidates = useMemo(
+    () => generateNameCandidates(parsedName),
+    [parsedName]
+  );
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-4">
@@ -580,26 +628,42 @@ export default function Home() {
               />
             </div>
             <Separator />
-            <div>
+            <div className="flex flex-col gap-2">
               <h2 className="scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight first:mt-0">
-                Result ({generatedName.length}/{CHARACTER_LIMIT} characters):
+                Results
               </h2>
-              <div className="flex items-center">
-                <div className="flex text-4xl font-bold bg-slate-600 text-white whitespace-pre text-center justify-center aspect-[6] w-[300px]">
-                  <div className="border m-1 border-dashed border-white w-full flex items-center justify-center overflow-hidden">
-                    <p
-                      style={{
-                        transform: `scaleX(${Math.min(
-                          1,
-                          10 / generatedName.length
-                        )})`,
-                      }}
-                    >
-                      {generatedName}
-                    </p>
+              {generatedNameCandidates.map((generatedName, index) => (
+                <div
+                  key={generatedName}
+                  className="flex flex-col items-center gap-0.5"
+                >
+                  {index === 1 && (
+                    <>
+                      <Separator />
+                      <p className="text-muted-foreground text-md py-2">
+                        You may also try:
+                      </p>
+                    </>
+                  )}
+                  <div className="flex text-4xl font-bold bg-slate-600 text-white whitespace-pre text-center justify-center aspect-[6] w-[300px]">
+                    <div className="border m-1 border-dashed border-white w-full flex items-center justify-center overflow-hidden">
+                      <p
+                        style={{
+                          transform: `scaleX(${Math.min(
+                            1,
+                            10 / generatedName.length
+                          )})`,
+                        }}
+                      >
+                        {generatedName}
+                      </p>
+                    </div>
                   </div>
+                  <p className="text-muted-foreground font-mono">
+                    {generatedName.length}/{CHARACTER_LIMIT} chars
+                  </p>
                 </div>
-              </div>
+              ))}
             </div>
             <Separator />
             <h2 className="scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight first:mt-0">
@@ -624,12 +688,12 @@ export default function Home() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {testCases.map(([input, expected]) => (
-                  <TableRow key={expected}>
+                {examples.map(({ input, candidates }) => (
+                  <TableRow key={input.name}>
                     <TableCell>{input.rank}</TableCell>
                     <TableCell>{input.name}</TableCell>
                     <TableCell>{input.isDoctor ? "Yes" : "No"}</TableCell>
-                    <TableCell>{generateName(parseName(input))}</TableCell>
+                    <TableCell>{candidates.join(", ")}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
