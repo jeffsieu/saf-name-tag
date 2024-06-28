@@ -628,7 +628,7 @@ export default function Home() {
               />
             </div>
             <Separator />
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-4">
               <h2 className="scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight first:mt-0">
                 Results
               </h2>
@@ -659,7 +659,7 @@ export default function Home() {
                       </p>
                     </div>
                   </div>
-                  <p className="text-muted-foreground font-mono">
+                  <p className="text-muted-foreground text-sm font-mono">
                     {generatedName.length}/{CHARACTER_LIMIT} chars
                   </p>
                 </div>
