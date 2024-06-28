@@ -391,11 +391,16 @@ export default function Home() {
   const generatedName = useMemo(() => generateName(parsedName), [parsedName]);
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="flex flex-col gap-8">
+    <main className="flex min-h-screen flex-col items-center justify-between p-4">
+      <div className="flex flex-col gap-8 max-w-3xl">
         <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
           SAF Name Tag Calculator
         </h1>
+        <p className="text-muted-foreground">
+          Find out how to write your name on an SAF No. 4 name tag based on the
+          latest name tag conventions.
+        </p>
+        <Separator />
         <Form {...form}>
           <form className="flex flex-col gap-4">
             <FormField
@@ -406,8 +411,8 @@ export default function Home() {
                   <FormLabel>Full name</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Full Name"
                       className="uppercase"
+                      autoComplete="off"
                       {...field}
                     />
                   </FormControl>
@@ -560,6 +565,7 @@ export default function Home() {
                         placeholder="E.g. ME1T, ME4-1,
                       ME7"
                         className="uppercase"
+                        autoComplete="off"
                         disabled={!isMdes}
                         {...field}
                       />
@@ -630,6 +636,10 @@ export default function Home() {
             </Table>
           </form>
         </Form>
+        <p className="text-muted-foreground text-sm">
+          Disclaimer: This application is for educational purposes only. It is
+          not an official tool associated with/developed by the SAF.
+        </p>
       </div>
     </main>
   );
