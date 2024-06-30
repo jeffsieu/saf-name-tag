@@ -32,91 +32,12 @@ import {
   TableBody,
   TableCell,
 } from "@/components/ui/table";
-
-const CHARACTER_LIMIT = 17;
-
-const testCases: Array<[NameInput, string]> = [
-  [
-    {
-      name: "TAN BEE LIAN",
-      type: "chineseEnglish",
-      surnameIndices: [0],
-      rank: "CPT",
-      isMdes: false,
-      isDoctor: false,
-    },
-    "TAN BEE LIAN",
-  ],
-  [
-    {
-      name: "TAN ZHI QING",
-      type: "chineseEnglish",
-      surnameIndices: [0],
-      rank: "ME3-2",
-      isMdes: true,
-      isDoctor: false,
-    },
-    "ME3-2 TAN Z Q",
-  ],
-  [
-    {
-      name: "TAN JUN WEI",
-      type: "chineseEnglish",
-      surnameIndices: [0],
-      rank: "CPT",
-      isMdes: false,
-      isDoctor: true,
-    },
-    "DR TAN JUN WEI",
-  ],
-  [
-    {
-      name: "ALEXANDER MAXIMUS CHONG CHEE KEONG",
-      type: "chineseEnglish",
-      surnameIndices: [2],
-      rank: "ME2-2",
-      isMdes: true,
-      isDoctor: false,
-    },
-    "ME2-2 A M CHONG",
-  ],
-  [
-    {
-      name: "MOHAMED AHMAD BIN BAHARUDIN",
-      type: "malay",
-      surnameIndices: [2, 3],
-      rank: "CPL",
-      isMdes: false,
-      isDoctor: false,
-    },
-    "MD AHMAD",
-  ],
-  [
-    {
-      name: "ADYA D/O NARAIN",
-      type: "indian",
-      surnameIndices: [1, 2],
-      rank: "ME4-3",
-      isMdes: true,
-      isDoctor: false,
-    },
-    "ME4-3 ADYA",
-  ],
-];
-
-type NamePart = {
-  value: string;
-  type: "givenName" | "surname";
-};
-
-type NameInput = {
-  name: string;
-  type: NameType;
-  surnameIndices: Array<number>;
-  rank: string;
-  isMdes: boolean;
-  isDoctor: boolean;
-};
+import generateCandidateNames from "@/utils/generateCandidateNames";
+import { CHARACTER_LIMIT } from "@/utils/constants";
+import { rulesByNameType } from "@/utils/rules";
+import { exampleNames } from "@/utils/examples";
+import parseName from "@/utils/parseName";
+import { NameType } from "@/utils/types";
 
 const formSchema = z.object({
   name: z.string(),
@@ -130,277 +51,6 @@ const formSchema = z.object({
   isMdes: z.boolean(),
   isDoctor: z.boolean(),
 });
-
-type ParsedName = {
-  names: Array<string>;
-  type: NameType;
-  surnameIndices: Array<number>;
-  rank: string | null;
-  isMdes: boolean;
-  isDoctor: boolean;
-};
-
-type Rule = {
-  name: string;
-  validate: (value: ParsedName) => boolean;
-  transform?: (value: ParsedName) => ParsedName | string;
-};
-
-const surnamePrintedInFull: Rule = {
-  name: "Surname is to be printed in full",
-  validate: (value) => true,
-};
-
-const mdesRankAndGrade: Rule = {
-  name: "Rank and grade to be reflected for servicepersons in Military Domain Expert Scheme (MDES).",
-  validate: (value) => true,
-};
-
-const doctorTitle: Rule = {
-  name: "Doctor title (DR) to be reflected for Medical Officers.",
-  validate: (value) => true,
-};
-
-const alphabetOnly: Rule = {
-  name: "Should only include letters from A to Z",
-  validate: (value) => true,
-};
-
-function renderNameInFull(parsedName: ParsedName) {
-  const prefix = getPrefix(parsedName);
-  return [prefix, ...parsedName.names].filter(Boolean).join(" ");
-}
-
-const spellInFullIfPossible: Rule = {
-  name: "Name spelt in full in accordance to NRIC if it is within 17 characters including MDES ranks or Doctor title, if applicable.",
-  validate: (value) => true, // TODO
-  transform: (value) => {
-    const speltInFull = renderNameInFull(value);
-
-    if (speltInFull.length <= CHARACTER_LIMIT) {
-      return speltInFull;
-    }
-
-    return value;
-  },
-};
-
-const excludeFathersName: Rule = {
-  name: "Exclude father's name",
-  validate: (value) => true, // TODO
-  transform: (value) => {
-    // Remove surname if present
-    const names =
-      value.surnameIndices !== null
-        ? value.names.filter(
-            (_, index) => !value.surnameIndices.includes(index)
-          )
-        : value.names;
-    return { ...value, names, surnameIndices: [] };
-  },
-};
-
-const onlyFirstGivenName: Rule = {
-  name: "Only first given name will be spelt in full.",
-  validate: (value) => true, // TODO
-  transform: (value) => {
-    const firstGivenNameIndex = value.names.findIndex(
-      (_, index) =>
-        !value.surnameIndices.includes(index) &&
-        !["MD", "AD"].includes(value.names[index].toUpperCase())
-    );
-    const names = value.names.filter(
-      (_, index) =>
-        value.surnameIndices.includes(index) ||
-        index === firstGivenNameIndex ||
-        ["MD", "AD"].includes(value.names[index].toUpperCase())
-    );
-    return { ...value, names, surnameIndices: [] };
-  },
-};
-
-const abbreviateMdAndAd: Rule = {
-  name: "MD and AD can used as abbreviation for Mohammed/Mohamad and Abdul respectively.",
-  validate: (value) => true, // TODO
-  transform: (value) => {
-    const mdRegex = /^m[aeou][hx][ae]mm?[ae][dt]$/gi;
-    const adRegex = /^abd([aeio]oo|ou)l$/gi;
-
-    const names = value.names.map((name) =>
-      name.replace(mdRegex, "MD").replace(adRegex, "AD")
-    );
-
-    return { ...value, names };
-  },
-};
-
-const abbreviateGivenNames: Rule = {
-  name: "Given names to be abbreviated to initials before or after surname based on NRIC sequence.",
-  validate: (value) => true, // TODO
-  transform: (value) => {
-    const names = value.names.map((name, index) => {
-      const isSurname = value.surnameIndices.includes(index);
-      return isSurname ? name : name.substring(0, 1);
-    });
-    return { ...value, names };
-  },
-};
-
-const truncateAbbreviatedNames: Rule = {
-  name: "If abbreviated given names exceeds 17 characters, only first and/or second given names will be abbreviated to initials.",
-  validate: (value) => true, // TODO
-  transform: (value) => {
-    const renderedName = renderNameInFull(value);
-
-    if (renderedName.length <= CHARACTER_LIMIT) {
-      return value;
-    }
-
-    // If meet a surname, immediately remove the rest
-    // Otherwise, pick the first and second given names
-    const firstGivenNameIndex = value.names.findIndex(
-      (_, index) => !value.surnameIndices.includes(index)
-    );
-
-    // Try to include the first given name and the next name
-    const namesTwoGivenNames = value.names.filter(
-      (_, index) =>
-        value.surnameIndices.includes(index) || index <= firstGivenNameIndex + 1
-    );
-    const nameWithTwoGivenNames = { ...value, names: namesTwoGivenNames };
-    const renderedNameWithTwoGivenNames = renderNameInFull(
-      nameWithTwoGivenNames
-    );
-    if (renderedNameWithTwoGivenNames.length <= CHARACTER_LIMIT) {
-      return nameWithTwoGivenNames;
-    }
-
-    const namesOneGivenName = value.names.filter(
-      (_, index) =>
-        value.surnameIndices.includes(index) || index <= firstGivenNameIndex
-    );
-    return { ...value, names: namesOneGivenName };
-  },
-};
-
-const rules: Record<NameType, Array<Rule>> = {
-  chineseEnglish: [
-    spellInFullIfPossible,
-    abbreviateGivenNames,
-    truncateAbbreviatedNames,
-    alphabetOnly,
-    surnamePrintedInFull,
-  ],
-  malay: [
-    excludeFathersName,
-    abbreviateMdAndAd,
-    onlyFirstGivenName,
-    alphabetOnly,
-  ],
-  indian: [excludeFathersName, onlyFirstGivenName, alphabetOnly],
-};
-
-const examples = testCases.map(([input]) => ({
-  input,
-  candidates: generateNameCandidates(parseName(input)),
-}));
-
-type NameType = "chineseEnglish" | "malay" | "indian";
-
-function getPrefix(parsedName: ParsedName) {
-  if (parsedName.isDoctor) {
-    return "DR";
-  }
-
-  if (parsedName.isMdes) {
-    return parsedName.rank;
-  }
-
-  return "";
-}
-
-function generateNameCandidates(parsedName: ParsedName) {
-  const nameRules = rules[parsedName.type];
-
-  const applyRules = (rules: Array<Rule>, parsedName: ParsedName) => {
-    const nameRules = [...rules];
-    let name = parsedName;
-
-    while (nameRules.length > 0) {
-      const rule = nameRules.shift()!;
-      const result = rule.transform?.(name) ?? name;
-
-      if (typeof result === "string") {
-        return result;
-      }
-
-      name = result;
-    }
-
-    const prefix = getPrefix(name);
-
-    return [prefix, ...name.names].filter(Boolean).join(" ");
-  };
-
-  const parsedNameCandidates = (() => {
-    if (parsedName.type === "chineseEnglish") {
-      if (parsedName.surnameIndices.length === 0) {
-        return [parsedName];
-      }
-      // For Alex Tan Jun Xiong, try also:
-      // - Alex Tan
-      // - Tan Jun Xiong
-      const firstSurnameIndex = parsedName.surnameIndices.reduce(
-        (acc, index) => Math.min(acc, index),
-        parsedName.names.length
-      );
-      const lastSurnameIndex = parsedName.surnameIndices.reduce(
-        (acc, index) => Math.max(acc, index),
-        -1
-      );
-
-      const hasNamesOnBothSides =
-        firstSurnameIndex > 0 && lastSurnameIndex < parsedName.names.length - 1;
-
-      if (hasNamesOnBothSides) {
-        const frontNamesOnly: ParsedName = {
-          ...parsedName,
-          names: parsedName.names.slice(0, lastSurnameIndex + 1),
-        };
-        const backNamesOnly: ParsedName = {
-          ...parsedName,
-          names: parsedName.names.slice(firstSurnameIndex),
-          surnameIndices: parsedName.surnameIndices.map(
-            (index) => index - firstSurnameIndex
-          ),
-        };
-
-        return [parsedName, frontNamesOnly, backNamesOnly];
-      }
-
-      return [parsedName];
-    }
-
-    return [parsedName];
-  })();
-
-  const results = parsedNameCandidates.map((parsedName) =>
-    applyRules(nameRules, parsedName).toUpperCase()
-  );
-
-  return Array.from(new Set(results));
-}
-
-function parseName(input: NameInput): ParsedName {
-  return {
-    names: input.name.split(" ").filter(Boolean),
-    type: input.type,
-    surnameIndices: input.surnameIndices,
-    rank: input.rank,
-    isMdes: input.isMdes,
-    isDoctor: input.isDoctor,
-  };
-}
 
 export default function Home() {
   const form = useForm<z.infer<typeof formSchema>>({
@@ -421,6 +71,7 @@ export default function Home() {
   const isMdes = form.watch("isMdes");
   const nameType = form.watch("type");
   const surnameIndices = form.watch("surnameIndices");
+  const selectedRules = useMemo(() => rulesByNameType[nameType], [nameType]);
 
   const parsedName = useMemo(() => {
     return parseName({
@@ -433,8 +84,8 @@ export default function Home() {
     });
   }, [name, nameType, surnameIndices, rank, isMdes, isDoctor]);
 
-  const generatedNameCandidates = useMemo(
-    () => generateNameCandidates(parsedName),
+  const generatedCandidateNames = useMemo(
+    () => generateCandidateNames(parsedName),
     [parsedName]
   );
 
@@ -504,7 +155,7 @@ export default function Home() {
             <FormField
               control={form.control}
               name="surnameIndices"
-              render={({ field }) => (
+              render={() => (
                 <FormItem>
                   <FormLabel>Surname/s</FormLabel>
                   <FormDescription>
@@ -632,7 +283,7 @@ export default function Home() {
               <h2 className="scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight first:mt-0">
                 Results
               </h2>
-              {generatedNameCandidates.map((generatedName, index) => (
+              {generatedCandidateNames.map((generatedName, index) => (
                 <div
                   key={generatedName}
                   className="flex flex-col items-center gap-0.5"
@@ -670,7 +321,7 @@ export default function Home() {
               Rules
             </h2>
             <ul className="list-disc list-inside">
-              {rules[nameType].map((rule) => (
+              {selectedRules.map((rule) => (
                 <li key={rule.name}>{rule.name}</li>
               ))}
             </ul>
@@ -688,7 +339,7 @@ export default function Home() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {examples.map(({ input, candidates }) => (
+                {exampleNames.map(({ input, candidates }) => (
                   <TableRow key={input.name}>
                     <TableCell>{input.rank}</TableCell>
                     <TableCell>{input.name}</TableCell>
@@ -701,8 +352,9 @@ export default function Home() {
           </form>
         </Form>
         <p className="text-muted-foreground text-sm">
-          Disclaimer: This application is for educational purposes only. It is
-          not an official tool associated with/developed by the SAF.
+          Disclaimer: This application is for educational purposes only. It is a
+          personal project and is not an official tool associated with/developed
+          by the SAF.
         </p>
       </div>
     </main>
