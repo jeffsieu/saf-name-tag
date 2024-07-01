@@ -91,17 +91,18 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-4">
-      <div className="flex flex-col gap-8 max-w-3xl">
-        <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
-          SAF Name Tag Calculator
-        </h1>
-        <p className="text-muted-foreground">
-          Find out how to write your name on an SAF No. 4 name tag based on the
-          latest name tag conventions.
-        </p>
-        <Separator />
+      <div className="flex flex-col gap-8 max-w-3xl pt-8">
+        <div className="space-y-4">
+          <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
+            SAF Name Tag Calculator
+          </h1>
+          <p className="text-muted-foreground">
+            Find out how to write your name on an SAF No. 4 name tag based on
+            the latest name tag conventions.
+          </p>
+        </div>
         <Form {...form}>
-          <form className="flex flex-col gap-4">
+          <form className="grid space-y-8">
             <FormField
               control={form.control}
               name="name"
@@ -157,11 +158,13 @@ export default function Home() {
               name="surnameIndices"
               render={() => (
                 <FormItem>
-                  <FormLabel>Surname/s</FormLabel>
-                  <FormDescription>
-                    Select the surname/s in your name. Include Bin, Bte, D/O,
-                    S/O if applicable.
-                  </FormDescription>
+                  <div className="grid space-y-1.5 mb-4">
+                    <FormLabel>Surname/s</FormLabel>
+                    <FormDescription>
+                      Select the surname/s in your name. Include Bin, Bte, D/O,
+                      S/O if applicable.
+                    </FormDescription>
+                  </div>
                   {parsedName.names.map((name, index) => (
                     <FormField
                       key={index.toString()}
@@ -278,79 +281,84 @@ export default function Home() {
                 )}
               />
             </div>
-            <Separator />
-            <div className="flex flex-col gap-4">
-              <h2 className="scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight first:mt-0">
-                Results
-              </h2>
-              {generatedCandidateNames.map((generatedName, index) => (
-                <div
-                  key={generatedName}
-                  className="flex flex-col items-center gap-0.5"
-                >
-                  {index === 1 && (
-                    <>
-                      <Separator />
-                      <p className="text-muted-foreground text-md py-2">
-                        You may also try:
-                      </p>
-                    </>
-                  )}
-                  <div className="flex text-4xl font-bold bg-slate-600 text-white whitespace-pre text-center justify-center aspect-[6] w-[300px]">
-                    <div className="border m-1 border-dashed border-white w-full flex items-center justify-center overflow-hidden">
-                      <p
-                        style={{
-                          transform: `scaleX(${Math.min(
-                            1,
-                            10 / generatedName.length
-                          )})`,
-                        }}
-                      >
-                        {generatedName}
-                      </p>
-                    </div>
-                  </div>
-                  <p className="text-muted-foreground text-sm font-mono">
-                    {generatedName.length}/{CHARACTER_LIMIT} chars
-                  </p>
-                </div>
-              ))}
-            </div>
-            <Separator />
-            <h2 className="scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight first:mt-0">
-              Rules
-            </h2>
-            <ul className="list-disc list-inside">
-              {selectedRules.map((rule) => (
-                <li key={rule.name}>{rule.name}</li>
-              ))}
-            </ul>
-            <h2 className="scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight first:mt-0">
-              Examples
-            </h2>
-            <Table>
-              <TableCaption>A list of example name tags</TableCaption>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Rank</TableHead>
-                  <TableHead>Full Name</TableHead>
-                  <TableHead>Doctor?</TableHead>
-                  <TableHead>Name Tag</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {exampleNames.map(({ input, candidates }) => (
-                  <TableRow key={input.name}>
-                    <TableCell>{input.rank}</TableCell>
-                    <TableCell>{input.name}</TableCell>
-                    <TableCell>{input.isDoctor ? "Yes" : "No"}</TableCell>
-                    <TableCell>{candidates.join(", ")}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
           </form>
         </Form>
+        <section className="grid space-y-2">
+          <h2 className="scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight first:mt-0">
+            Results
+          </h2>
+          <div className="grid gap-y-4">
+            {generatedCandidateNames.map((generatedName, index) => (
+              <div
+                key={generatedName}
+                className="flex flex-col items-center gap-0.5"
+              >
+                {index === 1 && (
+                  <div className="flex self-stretch items-center gap-2 mb-4">
+                    <Separator className="flex-1" />
+                    <p className="text-muted-foreground text-md">
+                      You may also try
+                    </p>
+                    <Separator className="flex-1" />
+                  </div>
+                )}
+                <div className="flex text-4xl font-bold bg-slate-600 text-white whitespace-pre text-center justify-center aspect-[6] w-[300px]">
+                  <div className="border m-1 border-dashed border-white w-full flex items-center justify-center overflow-hidden">
+                    <p
+                      style={{
+                        transform: `scaleX(${Math.min(
+                          1,
+                          10 / generatedName.length
+                        )})`,
+                      }}
+                    >
+                      {generatedName}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-muted-foreground text-sm font-mono">
+                  {generatedName.length}/{CHARACTER_LIMIT} chars
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+        <section className="grid space-y-2">
+          <h2 className="scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight first:mt-0">
+            Rules
+          </h2>
+          <ul className="list-disc list-inside">
+            {selectedRules.map((rule) => (
+              <li key={rule.name}>{rule.name}</li>
+            ))}
+          </ul>
+        </section>
+        <section className="grid space-y-2">
+          <h2 className="scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight first:mt-0">
+            Examples
+          </h2>
+          <Table>
+            <TableCaption>A list of example name tags</TableCaption>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Rank</TableHead>
+                <TableHead>Full Name</TableHead>
+                <TableHead>Doctor?</TableHead>
+                <TableHead>Name Tag</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {exampleNames.map(({ input, candidates }) => (
+                <TableRow key={input.name}>
+                  <TableCell>{input.rank}</TableCell>
+                  <TableCell>{input.name}</TableCell>
+                  <TableCell>{input.isDoctor ? "Yes" : "No"}</TableCell>
+                  <TableCell>{candidates.join(", ")}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </section>
         <p className="text-muted-foreground text-sm">
           Disclaimer: This application is for educational purposes only. It is a
           personal project and is not an official tool associated with/developed
