@@ -38,7 +38,6 @@ import { rulesByNameType } from "@/utils/rules";
 import { exampleNames } from "@/utils/examples";
 import parseName from "@/utils/parseName";
 import { NameType } from "@/utils/types";
-import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
   name: z.string(),
